@@ -2,20 +2,20 @@
 # This is the build stage for polkadot-parachain. Here we create the binary in a temporary image.
 FROM docker.io/paritytech/ci-linux:production as builder
 
-WORKDIR /cumulus
-COPY . /cumulus
+WORKDIR /origintrail-parachain
+COPY . /origintrail-parachain
 
-RUN cargo build --release -p origintrail-parachain
+RUN cargo build --release
 
 # This is the 2nd stage: a very small image where we copy the Polkadot binary."
 FROM docker.io/library/ubuntu:20.04
 
-COPY --from=builder /cumulus/target/release/origintrail-parachain /usr/local/bin
+COPY --from=builder /origintrail-parachain/target/release/origintrail-parachain /usr/local/bin
 
-RUN useradd -m -u 1000 -U -s /bin/sh -d /cumulus origintrail-parachain && \
-    mkdir -p /data /cumulus/.local/share && \
+RUN useradd -m -u 1000 -U -s /bin/sh -d /origintrail-parachain origintrail-parachain && \
+    mkdir -p /data /origintrail-parachain/.local/share && \
     chown -R origintrail-parachain:origintrail-parachain /data && \
-    ln -s /data /cumulus/.local/share/origintrail-parachain && \
+    ln -s /data /origintrail-parachain/.local/share/origintrail-parachain && \
 # unclutter and minimize the attack surface
     rm -rf /usr/bin /usr/sbin && \
 # check if executable works in this container
