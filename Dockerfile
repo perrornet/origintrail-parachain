@@ -11,7 +11,7 @@ RUN rustup default nightly && cargo build --release
 FROM docker.io/library/ubuntu:20.04
 
 COPY --from=builder /origintrail-parachain/target/release/origintrail-parachain /usr/local/bin
-COPY --from=builder /res/origintrail-parachain-2043-raw.json /config/origintrail-parachain-2043-raw.json
+COPY --from=builder /origintrail-parachain/res/origintrail-parachain-2043-raw.json /config/origintrail-parachain-2043-raw.json
 
 RUN useradd -m -u 1000 -U -s /bin/sh -d /origintrail-parachain origintrail-parachain && \
     mkdir -p /data /origintrail-parachain/.local/share && \
