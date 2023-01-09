@@ -1,36 +1,29 @@
-# Dockerfile for OriginTrail Parachain
-# Note: This is currently designed to simplify development
-
-FROM debian:stable
-
-ARG PROFILE=release
-
-# show backtraces
-ENV RUST_BACKTRACE 1
-
-# Updates core parts
-RUN apt-get update -y && \
-	apt-get install -y cmake pkg-config libssl-dev git gcc build-essential clang libclang-dev curl
+# This file is sourced from https://github.com/paritytech/polkadot/blob/master/scripts/ci/dockerfiles/polkadot/polkadot_builder.Dockerfile
+# This is the build stage for polkadot-parachain. Here we create the binary in a temporary image.
+FROM docker.io/paritytech/ci-linux:production as builder
 
 WORKDIR /origintrail-parachain
-COPY . ./
-# Install rust and build node
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && \
-	export PATH="$PATH:$HOME/.cargo/bin" && \
-	rustup toolchain install nightly && \
-	rustup target add wasm32-unknown-unknown --toolchain nightly && \
-	rustup default stable && \
-	cargo build "--$PROFILE"
+COPY . /origintrail-parachain
 
-# 30333 for p2p traffic
-# 9933 for RPC call
-# 9944 for Websocket
-# 9615 for Prometheus (metrics)
+RUN rustup default nightly && cargo build --release
+
+# This is the 2nd stage: a very small image where we copy the Polkadot binary."
+FROM docker.io/library/ubuntu:20.04
+
+COPY --from=builder /origintrail-parachain/target/release/origintrail-parachain /usr/local/bin
+
+RUN useradd -m -u 1000 -U -s /bin/sh -d /origintrail-parachain origintrail-parachain && \
+    mkdir -p /data /origintrail-parachain/.local/share && \
+    chown -R origintrail-parachain:origintrail-parachain /data && \
+    ln -s /data /origintrail-parachain/.local/share/origintrail-parachain && \
+# unclutter and minimize the attack surface
+    rm -rf /usr/bin /usr/sbin && \
+# check if executable works in this container
+    /usr/local/bin/origintrail-parachain --version
+
+USER origintrail-parachain
+
 EXPOSE 30333 9933 9944 9615
+VOLUME ["/data"]
 
-ENV PROFILE ${PROFILE}
-
-# Start compiled Starfleet bootnode
-CMD ./target/release/origintrail-parachain --base-path /tmp/parachain \
-    ${ADDITIONAL_PARAMS}
-
+ENTRYPOINT ["/usr/local/bin/origintrail-parachain"]
