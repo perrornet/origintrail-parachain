@@ -5,7 +5,7 @@ FROM docker.io/paritytech/ci-linux:production as builder
 WORKDIR /cumulus
 COPY . /cumulus
 
-RUN cargo build --release --locked -p origintrail-parachain
+RUN cargo build --release -p origintrail-parachain
 
 # This is the 2nd stage: a very small image where we copy the Polkadot binary."
 FROM docker.io/library/ubuntu:20.04
